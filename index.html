@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<body>
+<script>const log = console.log;</script>
+
+## 제너레이터/이터레이터/이터러블
+
+<script>
+  // function *gen() {
+  //   yield 10;
+  //   if (false) yield 20;
+  //   yield 30;
+  // }
+  // let iter = gen();
+  // log( [...iter] );
+  // for (const a of iter) {
+  //   log(a);
+  // }
+  // for (const a of [1,2,3,4,5,6]) {
+  //   log(a);
+  // }
+  // log(iter[Symbol.iterator]());
+  // const arr = [1, 2, 3];
+  // let iter2 = iter[Symbol.iterator]();
+  // console.log(iter2.next());
+  // console.log(iter2.next());
+  // console.log(iter2.next());
+  // console.log(iter2.next());
+
+</script>
+
+## 명령형 코드
+
+<script>
+// 리스트에서 홀수를 length 만큼 뽑아서 제곱한 후 모두 더하기
+// function f(list, length) {
+//   let acc = 0;
+//   for (const a of list) {
+//     if (a % 2) {
+//       acc += a * a;
+//       if (--length == 0) break;
+//     }
+//   }
+//   log(acc);
+// }
+//
+// function main() {
+//   f([1, 2, 3, 4, 5], 1);
+//   f([1, 2, 3, 4, 5], 2);
+//   f([1, 2, 3, 4, 5], 3);
+// }
+// main();
+</script>
+
+## 함수형/이터러블 중심 코드
+
+<script>
+
+const curry = f => (a, ...bs) =>
+  bs.length ? f(a, ...bs) : (...bs) => f(a, ...bs);
+
+const filter = curry(function *(f, iter) {
+  for (const a of iter) if (f(a)) yield a;
+});
+
+const map = curry(function *(f, iter) {
+  for (const a of iter) yield f(a);
+});
+
+const take = curry(function *(length, iter) {
+  for (const a of iter) {
+    yield a;
+    if (--length == 0) break;
+  }
+});
+
+const reduce = curry(function(f, acc, iter) {
+  if (arguments.length == 2) {
+    iter = acc[Symbol.iterator]();
+    acc = iter.next().value;
+  }
+  for (const a of iter) {
+    acc = f(acc, a);
+  }
+  return acc;
+});
+
+
+// function *gen() {
+//   yield 10;
+//   yield 30;
+//   yield 50;
+// }
+
+
+function f(list, length) {
+  log(
+    reduce((a, b) => a + b, 0,
+      take(length,
+        map(a => a * a,
+          filter(a => a % 2, list)))));
+}
+
+// function main() {
+//   f([1, 2, 3, 4, 5], 1);
+//   f([1, 2, 3, 4, 5], 2);
+//   f([1, 2, 3, 4, 5], 3);
+// }
+// main();
+
+const pipe = (...fs) => a => go(a, ...fs);
+
+const go = (a, ...fs) => reduce((a, f) => f(a), a, fs);
+
+const add = curry((a, b) => a + b);
+
+// log(add(1, 2));
+// log(add(1)(2));
+
+const add10 = add(10);
+
+
+// go(
+//   0,
+//   a => a + 1,
+//   a => a + 10,
+//   a => a + 100,
+//   log);
+
+function f2(list, length) {
+  go(list,
+    filter(a => a % 2),
+    map(a => a * a),
+    take(length),
+    reduce((a, b) => a + b),
+    log);
+}
+
+function main() {
+  f2([1, 2, 3, 4, 5], 1);
+  f2([1, 2, 3, 4, 5], 2);
+  f2([1, 2, 3, 4, 5], 3);
+}
+main();
+
+const values = function *(obj) {
+  for (const k in obj) yield obj[k];
+};
+
+const entries = function *(obj) {
+  for (const k in obj) yield [k, obj[k]];
+};
+
+const keys = function *(obj) {
+  for (const k in obj) yield k;
+};
+
+const obj1 = {
+  a: 10,
+  b: 20,
+  c: 30
+};
+
+log([...map(a => a + 10, values(obj1))]);
+log([...map(a => a.toUpperCase(), keys(obj1))]);
+log([...map(([k, v]) => [k.toUpperCase(), v + 10], entries(obj1))]);
+
+// const f1 = pipe(
+//   a => a + 1,
+//   a => a + 10,
+//   a => a + 100,
+//   log
+// );
+//
+// console.log(f1(0));
+</script>
+
+## 2차원 배열
+
+<script>
+const isIter = a => a && a[Symbol.iterator];
+
+function *flat(iter) {
+  for (const a of iter) {
+    console.log('flat', a);
+    if (isIter(a)) yield *a;
+    else yield a;
+  }
+}
+console.clear()
+
+function *range(end) {
+  for (var i = 0; i < end;i++) {
+    yield i;
+  }
+}
+
+go(
+  range(Infinity),
+  filter(a => a % 2),
+  map(a => a * 10),
+  takeWhile(a => a < 20),
+  reduce(add),
+  log);
+
+</script>
+
+## 유저 목록
+
+<script>
+var users = [
+  { name: 'a', age: 21, family: [
+    { name: 'a1', age: 53 }, { name: 'a2', age: 47 },
+    { name: 'a3', age: 16 }, { name: 'a4', age: 14 }
+  ] },
+  { name: 'b', age: 24, family: [
+    { name: 'b1', age: 58 }, { name: 'b2', age: 51 },
+    { name: 'b3', age: 10 }, { name: 'b4', age: 22 }
+  ] },
+  { name: 'c', age: 31, family: [
+    { name: 'c1', age: 64 }, { name: 'c2', age: 62 }
+  ] },
+  { name: 'd', age: 20, family: [
+    { name: 'd1', age: 42 }, { name: 'd2', age: 42 },
+    { name: 'd3', age: 11 }, { name: 'd4', age: 7 }
+  ] }
+];
+//
+// go(
+//   range(Infinity),
+//   filter(a => a % 2),
+//   map(a => a * 10),
+//   take(20),
+//   reduce(add),
+//   log);
+
+go(
+  users,
+  map(u => u.family),
+  flat,
+  filter(u => {
+    log('filter1', u);
+    return u.age < 20;
+  }),
+  filter(u => {
+    log('filter2', u);
+    return u.age < 20 && u.age > 9;
+  }),
+  map(u => u.age),
+  take(3),
+  reduce(add),
+  log);
+
+</script>
+
+## 오늘 발표 코드
+ - https://github.com/indongyoo/SDS-functional-js-001
+
+
+</body>
+</html>
